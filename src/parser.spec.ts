@@ -1,14 +1,5 @@
 import {expect} from "chai";
-import {parseSchedule, WorkDay, writeCsv} from "./parser.ts";
-
-function stripMetadata(rows: string[]): string[] {
-    const headerRowIndex = rows.findIndex(r => r.startsWith(" Vecka"));
-    const withoutHead = rows.slice(headerRowIndex + 1);
-
-    const separatorRowIndex = withoutHead.findIndex(r => r.startsWith(";;;;;;;;;"))
-    return withoutHead.splice(0, separatorRowIndex);
-
-}
+import {parseSchedule, writeCsv} from "./parser.ts";
 
 async function readFile(path: string) {
     const response = await fetch(path);

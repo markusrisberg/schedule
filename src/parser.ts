@@ -54,7 +54,6 @@ export class WorkDay {
     }
 
     private isEvening(): boolean {
-        const date = new Date(`${this.date}T${this.to}`);
         return this.toLocaleTime(this.from).includes("PM");
     }
 }

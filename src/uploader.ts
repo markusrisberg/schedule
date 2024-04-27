@@ -15,11 +15,13 @@ export function setupUploader(element: HTMLDivElement) {
 
     const inputElement = element.querySelector<HTMLInputElement>('input')!;
     inputElement.addEventListener("change", () => {
-        handleFiles(inputElement.files);
+        handleFiles((inputElement.files as unknown as File[]));
     })
 
     const dropArea = element.querySelector<HTMLDivElement>("#drop-area");
-    connectDragAndDrop(dropArea, document);
+    if(dropArea != null) {
+        connectDragAndDrop(dropArea, document);
+    }
 }
 
 function getFilename(file: File) {
@@ -66,12 +68,12 @@ async function handleFile(file: File){
     issueDownload(csv, name);
 }
 
-function preventDefaults (e) {
+function preventDefaults (e: Event) {
     e.preventDefault()
     e.stopPropagation()
 }
 
-function handleDrop(e) {
+function handleDrop(e: any) {
     var dt = e.dataTransfer
     var files = dt.files
 
@@ -92,7 +94,7 @@ function connectDragAndDrop(dropArea: HTMLDivElement, document: Document) {
     const highlight = () => dropArea.classList.add('highlight');
     const unhighlight = () => dropArea.classList.remove('highlight');
     ;['dragenter', 'dragover'].forEach(eventName => {
-        dropArea.addEventListener(eventName, (e) => highlight, false)
+        dropArea.addEventListener(eventName, () => highlight, false)
     })
     ;['dragleave', 'drop'].forEach(eventName => {
         dropArea.addEventListener(eventName, unhighlight, false)
