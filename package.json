@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:github": "tsc && vite build --base=/schedule/",
     "preview": "vite preview",
     "test": "web-test-runner --node-resolve",
     "test:watch": "web-test-runner --node-resolve --watch"
