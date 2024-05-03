@@ -18,6 +18,11 @@ a {
     margin: 50px auto;
     padding: 20px;
 }
+#next-step {
+    width: 480px;
+    margin: 50px auto;
+    padding: 20px;
+}
 #drop-area.highlight {
     border-color: purple;
 }

@@ -32,7 +32,7 @@ export class WorkDay {
     }
 
     toCSV(): string {
-        return [this.getDescription(),this.toLocaleDate(), this.toLocaleTime(this.from), this.toLocaleTime(this.to), "False", "", "", "True"].join(";");
+        return [this.getDescription(),this.toLocaleDate(), this.toLocaleTime(this.from), this.toLocaleDate(), this.toLocaleTime(this.to), "False", "", "", "True"].join(",");
     }
 
     private toLocaleDate(): string {
@@ -66,7 +66,7 @@ export function parseSchedule(content: string) {
 }
 
 export function writeCsv(workDays: WorkDay[]): string {
-    const rows = ["Subject;Start Date;Start Time;End Date;End Time;All Day Event;Description;Location;Private"]
+    const rows = ["Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private"]
     rows.push(...workDays.map(w => w.toCSV()));
     return rows.join("\n");
 }

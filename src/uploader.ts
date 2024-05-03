@@ -6,7 +6,7 @@ export function setupUploader(element: HTMLDivElement) {
         <div id="drop-area">
         
           <form class="my-form">
-            <p>Dra eller välj schema fil (csv)</p>
+            <p>1. Dra eller välj schema-fil (csv)</p>
             <input type="file" id="fileElem" accept="text/csv">
             <label class="button" for="fileElem">Välj</label>
           </form>
