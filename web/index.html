@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="sv">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="referrer" content="no-referrer" />
+    <meta name="description" content="Förhandsgranska ditt arbetsschema lokalt och importera valda pass till Google Kalender." />
+    <title>Schema till kalender</title>
+  </head>
+  <body>
+    <main>
+      <header class="page-header">
+        <svg viewBox="0 0 40 40" fill="none" aria-hidden="true">
+          <rect x="5" y="8" width="30" height="28" rx="8" stroke="currentColor" stroke-width="2" />
+          <path d="M13 4v9M27 4v9M6 18h28M14 26l4 4 9-9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <h1>Schema till kalender</h1>
+      </header>
+
+      <nav aria-label="Importsteg" class="stepper">
+        <ol>
+          <li><button id="step-upload" type="button" aria-current="step" aria-controls="panel-upload"><span class="step-number" aria-hidden="true">1</span> Läs in CSV</button></li>
+          <li><button id="step-review" type="button" aria-controls="panel-review" disabled><span class="step-number" aria-hidden="true">2</span> Granska</button></li>
+          <li><button id="step-calendar" type="button" aria-controls="panel-calendar" disabled><span class="step-number" aria-hidden="true">3</span> Välj kalender</button></li>
+          <li><button id="step-import" type="button" aria-controls="panel-import" disabled><span class="step-number" aria-hidden="true">4</span> Importera</button></li>
+        </ol>
+      </nav>
+
+      <div class="task-card">
+        <div id="file-context" class="file-context" hidden>
+          <span class="file-symbol" aria-hidden="true">CSV</span>
+          <div>
+            <strong id="file-name"></strong>
+            <span id="file-summary"></span>
+          </div>
+          <span class="local-badge">Läst lokalt</span>
+        </div>
+
+        <section id="panel-upload" class="panel" aria-labelledby="step-upload" tabindex="-1">
+          <div class="file-picker">
+            <button id="choose-file" type="button" aria-describedby="file-status">Välj schemafil</button>
+            <input id="schedule-file" type="file" accept=".csv,text/csv" hidden />
+            <p id="file-status" role="status">Ingen fil vald.</p>
+          </div>
+          <p id="file-error" role="alert" class="error" hidden></p>
+        </section>
+
+        <section id="panel-review" class="panel" aria-labelledby="step-review" tabindex="-1" hidden>
+          <div class="review-summary">
+            <p id="review-confirmation" hidden></p>
+            <p id="selection-count" role="status" hidden></p>
+          </div>
+          <p id="empty-preview" class="empty">Filen har lästs in, men inga pass matchar reglerna för arbete. Det finns inga händelser att importera.</p>
+          <div id="agenda-review" hidden>
+            <div class="selection-actions">
+              <span>Hela filen</span>
+              <button id="select-all" type="button" class="text-button" disabled aria-label="Välj alla händelser i hela filen">Välj alla</button>
+              <button id="select-none" type="button" class="text-button" disabled aria-label="Välj inga händelser i hela filen">Välj ingen</button>
+            </div>
+            <div class="agenda-period">
+              <div aria-live="polite" aria-atomic="true">
+                <h2 id="agenda-week" tabindex="-1"></h2>
+                <p id="agenda-range"></p>
+              </div>
+              <div class="agenda-paging">
+                <button id="previous-week" type="button" aria-label="Föregående vecka" aria-controls="agenda-days" disabled>←</button>
+                <button id="next-week" type="button" aria-label="Nästa vecka" aria-controls="agenda-days" disabled>→</button>
+              </div>
+            </div>
+            <div id="agenda-days" class="agenda-days" role="region" aria-labelledby="agenda-week" aria-describedby="agenda-range"></div>
+            <p class="metadata"><span>PÄS · Europe/Stockholm</span><span>✓ Vald · − Ej vald · +1 = slutar nästa dag</span></p>
+          </div>
+          <p id="review-locked" class="hint" hidden>Importen har startats. Urvalet är låst. Se resultatet i steget Importera. Läs bara in filen igen om du vill riskera dubbletter.</p>
+        </section>
+
+        <section id="panel-calendar" class="panel" aria-labelledby="step-calendar" tabindex="-1" hidden>
+          <p>Välj gärna en separat kalender, till exempel Jobb. Skapa den i Google Kalender först. Här visas bara kalendrar som du själv äger.</p>
+          <p class="hint">Google ber om åtkomst till kalenderlistan och rätt att läsa, ändra och radera händelser i dina egna kalendrar. Appen använder åtkomsten bara för att lista kalendrar och skapa de händelser du väljer.</p>
+          <div class="actions">
+            <button id="connect" type="button" disabled>Anslut Google</button>
+            <button id="disconnect" type="button" class="text-button" hidden>Koppla från</button>
+          </div>
+          <p id="connection-error" role="alert" class="error" hidden></p>
+          <div id="calendar-field" hidden>
+            <label for="calendar">Kalender</label>
+            <select id="calendar" disabled><option value="">Välj kalender</option></select>
+          </div>
+          <p id="calendar-locked" class="hint" hidden>Importen har startats. Kalendern och kontot kan inte ändras för den här importen. Resultatet finns kvar i steget Importera.</p>
+        </section>
+
+        <section id="panel-import" class="panel" aria-labelledby="step-import" tabindex="-1" hidden>
+          <p class="warning">Varje import skapar nya händelser. Befintliga händelser kontrolleras inte. Samma fil igen kan ge dubbletter.</p>
+          <p id="import-target">Välj händelser och anslut en kalender för att importera.</p>
+          <button id="import" type="button" disabled>Importera till Google Kalender</button>
+          <p id="import-status" role="status" aria-live="polite"></p>
+          <p id="error" role="alert" class="error" hidden></p>
+          <div id="results" hidden>
+            <h2>Resultat per händelse</h2>
+            <p class="hint">PÄS · Europe/Stockholm. +1 betyder nästa dag. Inte valda händelser visas inte här.</p>
+            <div class="table-container" role="region" aria-label="Importresultat" tabindex="0">
+              <table>
+                <caption class="sr-only">Resultat för valda händelser</caption>
+                <thead><tr><th scope="col">Datum</th><th scope="col">Pass</th><th scope="col">Tid</th><th scope="col">Status</th></tr></thead>
+                <tbody id="result-events"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <div id="wizard-actions" class="wizard-actions" hidden>
+          <button id="back" type="button" class="text-button" hidden><span aria-hidden="true">←</span> Tillbaka</button>
+          <button id="next" type="button" hidden disabled>Nästa <span aria-hidden="true">→</span></button>
+        </div>
+      </div>
+
+      <footer>
+        <p>Filen läses lokalt och sparas inte. Bara valda händelser skickas till Google när du importerar.</p>
+      </footer>
+    </main>
+    <script type="module" src="/main.ts"></script>
+  </body>
+</html>
