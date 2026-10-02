@@ -1,6 +1,7 @@
 Subject,Start Date,Start Time,End Date,End Time,All Day Event,Description,Location,Private
 Jobb dag,03/04/2030,08:15 AM,03/04/2030,03:45 PM,False,Vecka 10,PÄS,True
 Jobb kväll,03/06/2030,03:15 PM,03/06/2030,09:45 PM,False,Vecka 10,PÄS,True
+Jobb (UTB),03/07/2030,09:00 AM,03/07/2030,11:00 AM,False,Vecka 10,PÄS,True
 Jobb dag,03/07/2030,11:30 AM,03/07/2030,04:30 PM,False,Vecka 10,PÄS,True
 Jobb dag,03/08/2030,02:00 PM,03/08/2030,06:00 PM,False,Vecka 10,PÄS,True
 Beredskap,03/08/2030,06:00 PM,03/09/2030,12:00 AM,False,Vecka 10,PÄS,True

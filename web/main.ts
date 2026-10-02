@@ -30,8 +30,6 @@ const wizard = new ImportWizard();
 const stepControls = steps.map((step) => ({
   step, button: element<HTMLButtonElement>(`step-${step}`), panel: element(`panel-${step}`)
 }));
-const allButton = element<HTMLButtonElement>('select-all');
-const noneButton = element<HTMLButtonElement>('select-none');
 const connectButton = element<HTMLButtonElement>('connect');
 const disconnectButton = element<HTMLButtonElement>('disconnect');
 const calendarSelect = element<HTMLSelectElement>('calendar');
@@ -56,7 +54,7 @@ let importing = false;
 let consumed = false;
 let expiryTimer: number | undefined;
 let agenda: ReturnType<typeof buildAgenda>;
-let eventControls: { index: number; button: HTMLButtonElement; mark: HTMLElement; status: HTMLElement }[] = [];
+let eventControls: { index: number; button: HTMLButtonElement; mark: HTMLElement }[] = [];
 const resultControls = new Map<number, HTMLTableCellElement>();
 const dateFormat = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const fullDateFormat = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
@@ -96,20 +94,17 @@ function showError(target: HTMLElement, error?: unknown): void {
 function refreshControls(): void {
   const locked = busy();
   chooseFileButton.disabled = fileInput.disabled = locked;
-  allButton.disabled = noneButton.disabled = locked || consumed || !events.length;
   connectButton.disabled = locked || consumed || !googleReady;
   disconnectButton.disabled = locked || consumed;
   disconnectButton.hidden = !google;
   calendarSelect.disabled = locked || consumed || !google;
   element('calendar-field').hidden = !google;
   connectButton.textContent = connecting ? 'Ansluter…' : google ? 'Byt konto / anslut igen' : 'Anslut Google';
-  for (const { index, button, mark, status } of eventControls) {
+  for (const { index, button, mark } of eventControls) {
     const chosen = selected.has(index);
     button.disabled = locked || consumed;
     button.setAttribute('aria-pressed', String(chosen));
     mark.textContent = chosen ? '✓' : '−';
-    status.textContent = chosen ? 'Vald' : 'Ej vald';
-    status.className = chosen ? 'sr-only' : 'agenda-choice-status';
   }
   previousWeekButton.disabled = locked || !agenda?.previousWeek;
   nextWeekButton.disabled = locked || !agenda?.nextWeek;
@@ -167,6 +162,7 @@ function agendaCard(segment: AgendaSegment): HTMLButtonElement {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = `agenda-event ${event.kind}`;
+  button.classList.toggle('day', event.kind === 'work' && event.title === 'Jobb dag');
   const original = `${event.title}, ${event.start.date} kl. ${event.start.time} till ${event.end.date} kl. ${event.end.time}, ${event.timeZone}`;
   button.title = original;
   button.setAttribute('aria-label', `${original}${event.start.date !== event.end.date ? ', slutar nästa dag, +1' : ''}${segment.continuation ? `, fortsättning på ${segment.start.date}` : ''}`);
@@ -196,8 +192,6 @@ function agendaCard(segment: AgendaSegment): HTMLButtonElement {
     continuation.textContent = `Fortsättning från ${event.start.date} kl. ${event.start.time}`;
     copy.append(continuation);
   }
-  const status = document.createElement('span');
-  copy.append(status);
   button.append(mark, copy);
   button.addEventListener('click', () => {
     if (busy() || consumed) return;
@@ -205,7 +199,7 @@ function agendaCard(segment: AgendaSegment): HTMLButtonElement {
     else selected.add(index);
     refreshControls();
   });
-  eventControls.push({ index, button, mark, status });
+  eventControls.push({ index, button, mark });
   return button;
 }
 
@@ -254,7 +248,9 @@ function renderAgenda(): void {
   const confirmation = element('review-confirmation');
   confirmation.hidden = !events.length;
   const oncallCount = events.filter((event) => event.kind === 'oncall').length;
+  const specialCount = events.filter((event) => event.kind === 'special').length;
   confirmation.textContent = `Filen har lästs in. ${events.length - oncallCount} arbetspass${oncallCount ? ` och ${oncallCount} beredskapspass` : ''}.`;
+  if (specialCount) confirmation.textContent += ` ${specialCount} av arbetspassen har en annan kod än .TJG och visas i orange.`;
   refreshControls();
 }
 
@@ -331,14 +327,6 @@ fileInput.addEventListener('change', async () => {
   wizard.visit('review');
   refreshSteps();
 });
-
-for (const [button, select] of [[allButton, true], [noneButton, false]] as const) {
-  button.addEventListener('click', () => {
-    if (busy() || consumed) return;
-    selected = new Set(select ? events.map((_, index) => index) : []);
-    refreshControls();
-  });
-}
 
 function clearConnection(): void {
   clearTimeout(expiryTimer);

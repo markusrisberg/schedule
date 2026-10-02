@@ -56,12 +56,11 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 #file-status { flex: 1; min-width: 0; margin: 0; color: var(--muted-foreground); overflow-wrap: anywhere; }
 .hint { color: var(--muted-foreground); font-size: 12px; }
 
-.review-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; }
+.review-summary { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 20px; }
 #review-confirmation { flex: 1 1 230px; margin: 0; color: var(--muted-foreground); font-size: 12px; }
 #selection-count { margin: 0; padding: 7px 12px; border-radius: 20px; color: var(--primary); background: var(--muted); font-size: 12px; font-weight: 600; }
-.selection-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; margin: 8px 0 20px; padding-bottom: 8px; border-bottom: 1px solid var(--border); color: var(--muted-foreground); font-size: 12px; }
-.selection-actions button { font-size: 12px; white-space: nowrap; }
-.agenda-period { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+#agenda-review { padding: 16px; background: #f7f7f4; border: 1px solid #e7e7e1; border-radius: 14px; }
+.agenda-period { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 12px; }
 .agenda-period h2 { margin: 0; font-size: 19px; font-weight: 600; }
 #agenda-range { margin: 3px 0 0; color: var(--muted-foreground); font-size: 12px; }
 .agenda-paging { display: flex; gap: 5px; flex-shrink: 0; }
@@ -75,9 +74,14 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .agenda-content h3::first-letter { text-transform: uppercase; }
 .agenda-event { width: 100%; min-height: 44px; justify-content: flex-start; gap: 12px; padding: 10px 12px; margin-top: 6px; text-align: left; font-size: 12px; line-height: 1.4; font-weight: 400; background: #eeeff9; color: #434b8c; border: 1px solid #dcdff0; border-radius: 6px; }
 .agenda-event.oncall { background: #fcf4d2; color: #6d591c; border-color: #ecdfa8; }
+.agenda-event.day { background: #e5f2ef; color: #285f57; border-color: #bddbd4; }
+.agenda-event.special { background: #fff0e1; color: #854515; border-color: #edc8a5; }
 .agenda-event:hover:enabled { background: #e1e4f5; border-color: #969dcd; }
 .agenda-event.oncall:hover:enabled { background: #f5e8b1; border-color: #c5b36e; }
+.agenda-event.day:hover:enabled { background: #d5eae4; border-color: #7cafa3; }
+.agenda-event.special:hover:enabled { background: #fbe0c5; border-color: #c68c56; }
 .agenda-event[aria-pressed="false"] { background: #fafafa; border-style: dashed; color: var(--muted-foreground); }
+.agenda-event[aria-pressed="false"]:hover:enabled { color: #555667; }
 .agenda-event[aria-pressed="false"] strong { text-decoration: line-through; }
 .agenda-event:disabled { opacity: 1; cursor: not-allowed; }
 .agenda-event:disabled .agenda-choice { border-style: double; border-width: 3px; }
@@ -85,7 +89,7 @@ button:disabled { opacity: .45; cursor: not-allowed; }
 .agenda-event-copy { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; flex: 1; min-width: 0; }
 .agenda-event-copy strong { font-weight: 600; }
 .agenda-interval { margin-left: auto; white-space: nowrap; font-variant-numeric: tabular-nums; }
-.agenda-continuation, .agenda-choice-status { flex-basis: 100%; font-size: 11px; }
+.agenda-continuation { flex-basis: 100%; font-size: 11px; }
 .agenda-empty { margin: 7px 0 0; color: var(--muted-foreground); font-size: 12px; }
 .metadata { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 5px 16px; color: var(--muted-foreground); font-size: 11px; margin: 8px 0 0; }
 .empty { padding: 24px 0; color: var(--muted-foreground); }
@@ -132,8 +136,7 @@ footer { color: var(--muted-foreground); font-size: 11px; text-align: center; ma
   .local-badge { display: none; }
   button { padding: 10px 16px; gap: 16px; }
   .text-button { padding: 10px 0; }
-  .selection-actions { gap: 10px; }
-  .selection-actions button { font-size: 11px; }
+  #agenda-review { padding: 10px; }
   .agenda-period h2 { font-size: 17px; }
   .agenda-day { grid-template-columns: 35px minmax(0, 1fr); gap: 10px; }
   .agenda-date { font-size: 25px; }

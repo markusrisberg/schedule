@@ -37,6 +37,7 @@
         </div>
 
         <section id="panel-upload" class="panel" aria-labelledby="step-upload" tabindex="-1">
+          <p>Ladda ner schemat i <em>CSV-format</em> ifrån TimeCare och läs sedan in den filen här.</p>
           <div class="file-picker">
             <button id="choose-file" type="button" aria-describedby="file-status">Välj schemafil</button>
             <input id="schedule-file" type="file" accept=".csv,text/csv" hidden />
@@ -52,11 +53,6 @@
           </div>
           <p id="empty-preview" class="empty">Filen har lästs in, men inga pass matchar reglerna för arbete. Det finns inga händelser att importera.</p>
           <div id="agenda-review" hidden>
-            <div class="selection-actions">
-              <span>Hela filen</span>
-              <button id="select-all" type="button" class="text-button" disabled aria-label="Välj alla händelser i hela filen">Välj alla</button>
-              <button id="select-none" type="button" class="text-button" disabled aria-label="Välj inga händelser i hela filen">Välj ingen</button>
-            </div>
             <div class="agenda-period">
               <div aria-live="polite" aria-atomic="true">
                 <h2 id="agenda-week" tabindex="-1"></h2>
@@ -75,7 +71,6 @@
 
         <section id="panel-calendar" class="panel" aria-labelledby="step-calendar" tabindex="-1" hidden>
           <p>Välj gärna en separat kalender, till exempel Jobb. Skapa den i Google Kalender först. Här visas bara kalendrar som du själv äger.</p>
-          <p class="hint">Google ber om åtkomst till kalenderlistan och rätt att läsa, ändra och radera händelser i dina egna kalendrar. Appen använder åtkomsten bara för att lista kalendrar och skapa de händelser du väljer.</p>
           <div class="actions">
             <button id="connect" type="button" disabled>Anslut Google</button>
             <button id="disconnect" type="button" class="text-button" hidden>Koppla från</button>

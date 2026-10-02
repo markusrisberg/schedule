@@ -47,6 +47,12 @@ describe('given the source schedule CSV format', () => {
   it('should reject malformed clock notation rather than removing all colons', () => {
     assert.throws(() => rowsToEvents(extractRowsFromCsv(`${header}\n${csvRow.replace('15:00', '15::00')}`)), /Ogiltig tid/);
   });
+
+  it('should trim export code whitespace while preserving exact code identity', () => {
+    const csv = `${header}\n${csvRow.replace('.TJG', '  .TJG  ')}\n${csvRow.replace('.TJG', '  UTB  ')}`;
+    assert.deepEqual(rowsToEvents(extractRowsFromCsv(csv)).map((event) => event.title),
+      ['Jobb kväll', 'Beredskap', 'Jobb (UTB)']);
+  });
 });
 
 describe('given a qualifying afternoon shift', () => {
@@ -98,9 +104,53 @@ describe('given invalid schedule dates and intervals', () => {
   });
 });
 
+describe('given coded shifts other than TJG', () => {
+  for (const code of ['UPPDR', 'UTB', 'PSEM', 'XTJG', '.TJG-extra']) {
+    for (const [date, start, end, notes] of [
+      ['2026-04-03', '0700', '1600', ''],
+      ['2026-04-03', '1500', '2300', 'MR'],
+      ['2026-06-06', '1500', '2300', ''],
+      ['2026-08-28', '1500', '2300', '']
+    ]) {
+      it(`should include ${code} on ${date} at ${start} unchanged without on-call`, () => {
+        assert.deepEqual(rowsToEvents([row({ code, date, start, end, notes })]), [{
+          title: `Jobb (${code})`, kind: 'special',
+          start: { date, time: `${start.slice(0, 2)}:${start.slice(2)}` },
+          end: { date, time: `${end.slice(0, 2)}:${end.slice(2)}` },
+          timeZone: 'Europe/Stockholm', description: 'Vecka 35', location: 'PÄS'
+        }]);
+      });
+    }
+  }
+
+  for (const [end, expected] of [['0000', '00:00'], ['0700', '07:00']]) {
+    it(`should preserve special overnight shifts ending at ${expected}`, () => {
+      const events = rowsToEvents([row({ code: 'UTB', date: '2027-12-31', start: '2200', end })]);
+      assert.equal(events.length, 1);
+      assert.deepEqual(events[0].end, { date: '2028-01-01', time: expected });
+      assert.equal(events[0].title, 'Jobb (UTB)');
+    });
+  }
+
+  it('should still reject invalid and ambiguous special shift intervals', () => {
+    for (const values of [
+      { start: '2400' }, { end: '' }, { start: '2300' },
+      { date: '2026-03-29', start: '0230' }, { date: '2026-10-25', start: '0230' }
+    ]) {
+      assert.throws(() => rowsToEvents([row({ code: 'UTB', ...values })]), /Ogiltig|saknas|samma start|finns inte|två gånger/);
+    }
+  });
+
+  it('should omit date-only rows and intervals without a code', () => {
+    assert.deepEqual(rowsToEvents([
+      row({ code: '', start: '', end: '' }), row({ code: 'LEDIG', start: '', end: '' }), row({ code: '' })
+    ]), []);
+  });
+});
+
 describe('given existing TJG, MR, title and Swedish holiday rules', () => {
   const scenarios: [Partial<ScheduleRow>, string[]][] = [
-    [{ code: 'PSEM' }, []],
+    [{ code: 'TJG' }, ['Jobb kväll', 'Beredskap']],
     [{ notes: 'MR' }, ['Jobb kväll']],
     [{ date: '2026-08-27' }, ['Jobb kväll']],
     [{ start: '1400' }, ['Jobb dag', 'Beredskap']],

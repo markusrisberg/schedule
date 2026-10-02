@@ -10,7 +10,7 @@ export interface CalendarEvent {
   timeZone: typeof TIME_ZONE;
   description: string;
   location: string;
-  kind: 'work' | 'oncall';
+  kind: 'work' | 'special' | 'oncall';
 }
 
 function civilDate(date: string): Date {
@@ -66,39 +66,44 @@ export function rowsToEvents(rows: ScheduleRow[]): CalendarEvent[] {
         throw new Error(`Ogiltig tid på ${row.date}. Tider ska vara 00:00–23:59.`);
       }
     }
-    const working = row.code.includes('TJG');
+    const working = row.code === '.TJG' || row.code === 'TJG';
     if (Boolean(row.start) !== Boolean(row.end) || (working && !row.start)) {
       throw new Error(`Start- eller sluttid saknas på ${row.date}.`);
     }
-    if (!row.start || !row.end || !working) continue;
+    if (!row.start || !row.end || !row.code) continue;
     if (row.start === row.end) throw new Error(`Passet på ${row.date} har samma start- och sluttid.`);
 
-    const year = date.getUTCFullYear();
-    let dates = publicDates.get(year);
-    if (!dates) {
-      dates = new Set(holidays.getHolidays(year)
-        .filter((holiday) => holiday.type === 'public')
-        .map((holiday) => holiday.date.slice(0, 10)));
-      publicDates.set(year, dates);
-    }
-    const holiday = dates.has(row.date);
     const weekday = date.getUTCDay();
     const afternoon = Number(row.start) >= 1200;
     const mr = row.notes.includes('MR');
-    if (holiday && weekday !== 0 && !(weekday >= 1 && weekday <= 5 && !mr && afternoon)) continue;
+    let holiday = false;
+    if (working) {
+      const year = date.getUTCFullYear();
+      let dates = publicDates.get(year);
+      if (!dates) {
+        dates = new Set(holidays.getHolidays(year)
+          .filter((holiday) => holiday.type === 'public')
+          .map((holiday) => holiday.date.slice(0, 10)));
+        publicDates.set(year, dates);
+      }
+      holiday = dates.has(row.date);
+      if (holiday && weekday !== 0 && !(weekday >= 1 && weekday <= 5 && !mr && afternoon)) continue;
+    }
 
     const tomorrow = nextDate(row.date);
     const endDate = row.end < row.start ? tomorrow : row.date;
     validateLocalTime(row.date, clock(row.start));
     validateLocalTime(endDate, clock(row.end));
+    let title = `Jobb (${row.code})`;
+    if (working) title = Number(row.start) > 1400 ? 'Jobb kväll' : 'Jobb dag';
     const work: CalendarEvent = {
-      title: Number(row.start) > 1400 ? 'Jobb kväll' : 'Jobb dag',
+      title,
       start: { date: row.date, time: clock(row.start) },
       end: { date: endDate, time: clock(row.end) },
-      timeZone: TIME_ZONE, description: `Vecka ${row.week}`, location: 'PÄS', kind: 'work'
+      timeZone: TIME_ZONE, description: `Vecka ${row.week}`, location: 'PÄS', kind: working ? 'work' : 'special'
     };
     events.push(work);
-    if (afternoon && !mr && ([0, 5, 6].includes(weekday) || holiday) && endDate === row.date) {
+    if (working && afternoon && !mr && ([0, 5, 6].includes(weekday) || holiday) && endDate === row.date) {
       events.push({ ...work, title: 'Beredskap', kind: 'oncall', start: work.end, end: { date: tomorrow, time: '00:00' } });
     }
   }
