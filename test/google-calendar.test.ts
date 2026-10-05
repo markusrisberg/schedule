@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import { CalendarImport, GoogleCalendar, readAccessToken } from '../web/google-calendar';
 import { rowsToEvents } from '../src/events';
+import type { EventColorPreferences } from '../web/event-colors';
 
 const granted = {
   access_token: 'test-token', expires_in: 3600,
@@ -97,6 +98,45 @@ describe('given a connected Google account', () => {
 });
 
 describe('given selected calendar events', () => {
+  for (const sendColors of [false, true]) {
+    it(`should ${sendColors ? 'send chosen category colors' : 'omit colors'} and freeze settings for a sequential batch`, async (t) => {
+      const shifts = rowsToEvents([
+        { week: '41', date: '2026-10-05', day: 'Mån', start: '0700', end: '1600', code: '.TJG', notes: '', timebreak: '', time: '' },
+        { week: '41', date: '2026-10-09', day: 'Fre', start: '1500', end: '2300', code: '.TJG', notes: '', timebreak: '', time: '' },
+        { week: '41', date: '2026-10-08', day: 'Tor', start: '0800', end: '1530', code: 'UTB', notes: '', timebreak: '', time: '' }
+      ]);
+      let complete!: (response: Response) => void;
+      const pending = new Promise<Response>((resolve) => { complete = resolve; });
+      const writes: Record<string, unknown>[] = [];
+      t.mock.method(globalThis, 'fetch', async (_: string, init: RequestInit) => {
+        if (init.method === 'GET') return json({ items: [primary] });
+        writes.push(JSON.parse(String(init.body)));
+        return writes.length === 1 ? pending : json({ id: `created-${writes.length}` });
+      });
+      const google = new GoogleCalendar(readAccessToken(granted));
+      await google.listOwnedCalendars();
+      const preferences: EventColorPreferences = {
+        sendColors, colorIds: { day: '11', evening: '9', oncall: '7', other: '3' }
+      };
+      const batch = new CalendarImport(shifts);
+      const importing = batch.run(google, primary.id, new Set(shifts.map((_, index) => index)), () => {}, preferences);
+      assert.equal(writes.length, 1);
+      preferences.sendColors = !sendColors;
+      preferences.colorIds.evening = '4';
+      preferences.colorIds.oncall = '8';
+      preferences.colorIds.other = '10';
+      complete(json({ id: 'first-created' }));
+      await importing;
+      assert.deepEqual(writes.map((body) => body.summary), ['Jobb dag', 'Jobb kväll', 'Beredskap', 'Jobb (UTB)']);
+      assert.deepEqual(writes.map((body) => body.colorId), sendColors ? ['11', '9', '7', '3'] : [undefined, undefined, undefined, undefined]);
+      if (!sendColors) assert.ok(writes.every((body) => !Object.hasOwn(body, 'colorId')));
+      assert.equal(batch.sendsColors, sendColors);
+      assert.deepEqual(writes[2].start, { dateTime: '2026-10-09T23:00:00', timeZone: 'Europe/Stockholm' });
+      assert.deepEqual(writes[2].end, { dateTime: '2026-10-10T00:00:00', timeZone: 'Europe/Stockholm' });
+      assert.ok(writes.every((body) => body.visibility === 'private'));
+    });
+  }
+
   it('should insert only selected events sequentially with explicit Stockholm times and block repeat submission', async (t) => {
     let complete!: (response: Response) => void;
     const pending = new Promise<Response>((resolve) => { complete = resolve; });

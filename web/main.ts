@@ -5,6 +5,7 @@ import { connectGoogle, loadGoogleIdentity } from './identity';
 import { preferredCalendar, rememberCalendar } from './calendar-preference';
 import { ImportWizard, steps } from './wizard';
 import { buildAgenda, type AgendaSegment } from './agenda';
+import { eventCategories, eventCategory, eventPalette, loadEventColors, saveEventColors, type EventCategory } from './event-colors';
 import './style.css';
 
 function element<T extends HTMLElement>(id: string): T {
@@ -39,6 +40,10 @@ const fileError = element('file-error');
 const connectionError = element('connection-error');
 const importError = element('error');
 const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID?.trim();
+const colorSettings = element<HTMLDetailsElement>('color-settings');
+const sendColors = element<HTMLInputElement>('send-colors');
+const colorPreferences = loadEventColors();
+let activeCategory: EventCategory = 'day';
 
 let events: CalendarEvent[] = [];
 let fileName = '';
@@ -61,6 +66,80 @@ const fullDateFormat = new Intl.DateTimeFormat('sv-SE', { day: 'numeric', month:
 const weekdayFormat = new Intl.DateTimeFormat('sv-SE', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' });
 
 function busy(): boolean { return importing || connecting || reading; }
+
+const categoryControls = eventCategories.map((category) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = `color-category-${category.key}`;
+  button.className = 'color-category';
+  const dot = document.createElement('span');
+  dot.className = 'color-dot';
+  dot.setAttribute('aria-hidden', 'true');
+  const label = document.createElement('span');
+  const name = document.createElement('small');
+  label.append(category.name, name);
+  button.append(dot, label);
+  button.addEventListener('click', () => {
+    if (busy() || consumed) return;
+    activeCategory = category.key;
+    refreshColors();
+  });
+  element('color-categories').append(button);
+  return { category, button, dot, name };
+});
+
+const swatchControls = eventPalette.map((color) => {
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.id = `color-swatch-${color.id}`;
+  const swatch = document.createElement('span');
+  swatch.className = 'color-swatch';
+  swatch.style.background = color.hex;
+  swatch.setAttribute('aria-hidden', 'true');
+  button.append(swatch, color.name);
+  button.addEventListener('click', () => {
+    if (busy() || consumed) return;
+    colorPreferences.colorIds[activeCategory] = color.id;
+    rememberColors();
+    refreshColors();
+  });
+  element('color-swatches').append(button);
+  return { color, button };
+});
+
+function rememberColors(): void {
+  const notice = element('color-storage-notice');
+  notice.hidden = saveEventColors(colorPreferences);
+  notice.textContent = notice.hidden ? '' : 'Färginställningarna kan inte sparas i webbläsaren. Dina val gäller på den här sidan.';
+}
+
+function refreshColors(): void {
+  for (const { category, button, dot, name } of categoryControls) {
+    const color = eventPalette.find((color) => color.id === colorPreferences.colorIds[category.key])!;
+    agendaDays.style.setProperty(`--color-${category.key}`, color.hex);
+    dot.style.background = color.hex;
+    name.textContent = color.name;
+    button.setAttribute('aria-pressed', String(activeCategory === category.key));
+    button.disabled = busy() || consumed;
+    if (activeCategory === category.key) element('color-palette-heading').textContent = `Färg för ${category.name}`;
+  }
+  for (const { color, button } of swatchControls) {
+    button.setAttribute('aria-pressed', String(color.id === colorPreferences.colorIds[activeCategory]));
+    button.disabled = busy() || consumed;
+  }
+  colorSettings.hidden = !events.length;
+  sendColors.checked = colorPreferences.sendColors;
+  sendColors.disabled = busy() || consumed;
+  const enabled = consumed ? batch?.sendsColors : colorPreferences.sendColors;
+  element('import-colors').textContent = enabled ? 'Färger: Enligt dina val i Granska' : 'Färger: Kalenderns standardfärg';
+}
+
+sendColors.addEventListener('change', () => {
+  if (busy() || consumed) return;
+  colorPreferences.sendColors = sendColors.checked;
+  rememberColors();
+  refreshColors();
+});
 
 function refreshSteps(): void {
   fileContext.hidden = wizard.current === 'upload' || !fileName;
@@ -92,6 +171,7 @@ function showError(target: HTMLElement, error?: unknown): void {
 }
 
 function refreshControls(): void {
+  refreshColors();
   const locked = busy();
   chooseFileButton.disabled = fileInput.disabled = locked;
   connectButton.disabled = locked || consumed || !googleReady;
@@ -161,8 +241,8 @@ function agendaCard(segment: AgendaSegment): HTMLButtonElement {
   const event = events[index];
   const button = document.createElement('button');
   button.type = 'button';
-  button.className = `agenda-event ${event.kind}`;
-  button.classList.toggle('day', event.kind === 'work' && event.title === 'Jobb dag');
+  button.className = 'agenda-event';
+  button.style.setProperty('--event-color', `var(--color-${eventCategory(event)})`);
   const original = `${event.title}, ${event.start.date} kl. ${event.start.time} till ${event.end.date} kl. ${event.end.time}, ${event.timeZone}`;
   button.title = original;
   button.setAttribute('aria-label', `${original}${event.start.date !== event.end.date ? ', slutar nästa dag, +1' : ''}${segment.continuation ? `, fortsättning på ${segment.start.date}` : ''}`);
@@ -250,7 +330,7 @@ function renderAgenda(): void {
   const oncallCount = events.filter((event) => event.kind === 'oncall').length;
   const specialCount = events.filter((event) => event.kind === 'special').length;
   confirmation.textContent = `Filen har lästs in. ${events.length - oncallCount} arbetspass${oncallCount ? ` och ${oncallCount} beredskapspass` : ''}.`;
-  if (specialCount) confirmation.textContent += ` ${specialCount} av arbetspassen har en annan kod än .TJG och visas i orange.`;
+  if (specialCount) confirmation.textContent += ` ${specialCount} av arbetspassen har en annan kod än .TJG.`;
   refreshControls();
 }
 
@@ -306,6 +386,7 @@ fileInput.addEventListener('change', async () => {
     const parsedEvents = rowsToEvents(extractRowsFromCsv(text));
     if (previousImport) clearSchedule();
     events = parsedEvents;
+    colorSettings.open = false;
     agenda = buildAgenda(events);
     fileName = file.name;
     element('file-name').textContent = fileName;
@@ -402,6 +483,7 @@ function renderResults(): void {
 
 function renderProgress(): void {
   if (!batch) return;
+  refreshColors();
   for (const [index, result] of batch.results.entries()) {
     const status = resultControls.get(index);
     if (!status) continue;
@@ -431,7 +513,7 @@ importButton.addEventListener('click', async () => {
   renderResults();
   refreshControls();
   try {
-    await batch.run(google, calendarSelect.value, selected, renderProgress);
+    await batch.run(google, calendarSelect.value, selected, renderProgress, colorPreferences);
   } catch (error) {
     showError(importError, error);
   } finally {

@@ -1,4 +1,5 @@
 import type { CalendarEvent } from '../src/events';
+import { eventCategory, type EventColorId, type EventColorPreferences } from './event-colors';
 
 export const GOOGLE_SCOPES = [
   'https://www.googleapis.com/auth/calendar.calendarlist.readonly',
@@ -50,7 +51,7 @@ export class GoogleCalendar {
 
   constructor(private readonly token: AccessToken) {}
 
-  private async request(path: string, event?: CalendarEvent): Promise<unknown> {
+  private async request(path: string, event?: CalendarEvent, colorId?: EventColorId): Promise<unknown> {
     const writing = event !== undefined;
     const recovery = writing
       ? 'Granska importresultatet och kontrollera kalendern innan du läser in filen på nytt.'
@@ -69,6 +70,7 @@ export class GoogleCalendar {
         body: event ? JSON.stringify({
           summary: event.title, location: event.location, description: event.description,
           visibility: 'private',
+          ...(colorId ? { colorId } : {}),
           start: { dateTime: `${event.start.date}T${event.start.time}:00`, timeZone: event.timeZone },
           end: { dateTime: `${event.end.date}T${event.end.time}:00`, timeZone: event.timeZone }
         }) : undefined,
@@ -137,9 +139,9 @@ export class GoogleCalendar {
     return { account: primary[0].id, calendars };
   }
 
-  async insert(calendarId: string, event: CalendarEvent): Promise<void> {
+  async insert(calendarId: string, event: CalendarEvent, colorId?: EventColorId): Promise<void> {
     if (!this.ownedIds.has(calendarId)) throw new CalendarError('Välj en kalender som det anslutna kontot äger.');
-    const result = await this.request(`calendars/${encodeURIComponent(calendarId)}/events`, event);
+    const result = await this.request(`calendars/${encodeURIComponent(calendarId)}/events`, event, colorId);
     if (!record(result) || typeof result.id !== 'string' || !result.id || result.status === 'cancelled') {
       throw new CalendarError('Google bekräftade inte en skapad händelse. Den kan ändå ha skapats. Kontrollera kalendern.', true);
     }
@@ -154,15 +156,19 @@ export interface ImportResult {
 
 export class CalendarImport {
   private started = false;
+  private colors?: EventColorPreferences;
   readonly results: ImportResult[];
+
+  get sendsColors(): boolean { return this.colors?.sendColors ?? false; }
 
   constructor(private readonly events: CalendarEvent[]) {
     this.results = events.map(() => ({ status: 'excluded' }));
   }
 
-  async run(google: GoogleCalendar, calendarId: string, selected: ReadonlySet<number>, changed: () => void): Promise<void> {
+  async run(google: GoogleCalendar, calendarId: string, selected: ReadonlySet<number>, changed: () => void, colors?: EventColorPreferences): Promise<void> {
     if (this.started) throw new CalendarError('Den här importen har redan startats. Läs bara in filen igen om du vill riskera dubbletter.');
     this.started = true;
+    this.colors = colors ? { sendColors: colors.sendColors, colorIds: { ...colors.colorIds } } : undefined;
     const indices = this.events.map((_, index) => index).filter((index) => selected.has(index));
     for (const index of indices) this.results[index] = { status: 'not-attempted' };
     changed();
@@ -170,7 +176,8 @@ export class CalendarImport {
       this.results[index] = { status: 'sending' };
       changed();
       try {
-        await google.insert(calendarId, this.events[index]);
+        const event = this.events[index];
+        await google.insert(calendarId, event, this.colors?.sendColors ? this.colors.colorIds[eventCategory(event)] : undefined);
         this.results[index] = { status: 'success' };
       } catch (error) {
         this.results[index] = {

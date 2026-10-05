@@ -66,7 +66,19 @@
             <div id="agenda-days" class="agenda-days" role="region" aria-labelledby="agenda-week" aria-describedby="agenda-range"></div>
             <p class="metadata"><span>PÄS · Europe/Stockholm</span><span>✓ Vald · − Ej vald · +1 = slutar nästa dag</span></p>
           </div>
-          <p id="review-locked" class="hint" hidden>Importen har startats. Urvalet är låst. Se resultatet i steget Importera. Läs bara in filen igen om du vill riskera dubbletter.</p>
+          <details id="color-settings" class="color-settings" hidden>
+            <summary>Färginställningar <span>Ändra färger och välj om de ska följa med till Google Kalender</span></summary>
+            <div id="color-categories" class="color-legend" role="group" aria-label="Välj kategori"></div>
+            <div class="color-inline-palette">
+              <h3 id="color-palette-heading"></h3>
+              <div id="color-swatches" class="color-swatches" role="group" aria-labelledby="color-palette-heading"></div>
+            </div>
+            <p id="color-storage-notice" role="status" class="hint" hidden></p>
+            <div class="color-import-option">
+              <label><input id="send-colors" type="checkbox"> Använd färgerna i Google Kalender</label>
+            </div>
+          </details>
+          <p id="review-locked" class="hint" hidden>Importen har startats. Urvalet och färgvalen är låsta. Se resultatet i steget Importera. Läs bara in filen igen om du vill riskera dubbletter.</p>
         </section>
 
         <section id="panel-calendar" class="panel" aria-labelledby="step-calendar" tabindex="-1" hidden>
@@ -86,6 +98,7 @@
         <section id="panel-import" class="panel" aria-labelledby="step-import" tabindex="-1" hidden>
           <p class="warning">Varje import skapar nya händelser. Befintliga händelser kontrolleras inte. Samma fil igen kan ge dubbletter.</p>
           <p id="import-target">Välj händelser och anslut en kalender för att importera.</p>
+          <p id="import-colors">Färger: Kalenderns standardfärg</p>
           <button id="import" type="button" disabled>Importera till Google Kalender</button>
           <p id="import-status" role="status" aria-live="polite"></p>
           <p id="error" role="alert" class="error" hidden></p>
