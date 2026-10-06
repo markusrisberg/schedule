@@ -22,7 +22,6 @@ const agendaReview = element('agenda-review');
 const agendaDays = element('agenda-days');
 const previousWeekButton = element<HTMLButtonElement>('previous-week');
 const nextWeekButton = element<HTMLButtonElement>('next-week');
-const selectionCount = element('selection-count');
 const resultList = element<HTMLTableSectionElement>('result-events');
 const nextButton = element<HTMLButtonElement>('next');
 const backButton = element<HTMLButtonElement>('back');
@@ -130,8 +129,6 @@ function refreshColors(): void {
   colorSettings.hidden = !events.length;
   sendColors.checked = colorPreferences.sendColors;
   sendColors.disabled = busy() || consumed;
-  const enabled = consumed ? batch?.sendsColors : colorPreferences.sendColors;
-  element('import-colors').textContent = enabled ? 'Färger: Enligt dina val i Granska' : 'Färger: Kalenderns standardfärg';
 }
 
 sendColors.addEventListener('change', () => {
@@ -154,6 +151,7 @@ function refreshSteps(): void {
   }
   wizardActions.hidden = wizard.current === 'upload';
   nextButton.hidden = wizard.current === 'upload' || wizard.current === 'import';
+  importButton.hidden = wizard.current !== 'import';
   nextButton.disabled = !wizard.canAdvance;
   backButton.hidden = wizard.current === 'upload';
   backButton.disabled = !wizard.canGoBack;
@@ -194,12 +192,8 @@ function refreshControls(): void {
   wizard.update({ hasParsedFile: Boolean(batch), hasSelection: selected.size > 0,
     hasCalendar: Boolean(google && calendar), busy: locked, consumed });
   refreshSteps();
-  selectionCount.hidden = !events.length;
-  selectionCount.textContent = `${selected.size} av ${events.length} valda i hela filen.${selected.size === 0 ? ' Välj minst en för att fortsätta.' : ''}`;
+  element('file-summary').textContent = `${selected.size} av ${events.length} händelser${agenda ? ` · ${agenda.range.start} – ${agenda.range.end}` : ''}`;
   if (!consumed) {
-    element('import-target').textContent = calendar
-      ? `${selected.size} händelser till ”${calendar.name}” · ${account}`
-      : 'Välj händelser och anslut en kalender för att importera.';
     importButton.textContent = calendar ? `Importera ${selected.size} händelser till ”${calendar.name}”` : 'Importera till Google Kalender';
   }
 }
@@ -390,7 +384,6 @@ fileInput.addEventListener('change', async () => {
     agenda = buildAgenda(events);
     fileName = file.name;
     element('file-name').textContent = fileName;
-    element('file-summary').textContent = `${events.length} händelser${agenda ? ` · ${agenda.range.start} – ${agenda.range.end}` : ''}`;
     selected = new Set(events.map((_, index) => index));
     batch = new CalendarImport(events);
     fileStatus.textContent = `${fileName} · ${events.length} händelser, varav ${events.filter((event) => event.kind === 'oncall').length} beredskap.`;

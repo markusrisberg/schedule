@@ -31,7 +31,7 @@
           <span class="file-symbol" aria-hidden="true">CSV</span>
           <div>
             <strong id="file-name"></strong>
-            <span id="file-summary"></span>
+            <span id="file-summary" role="status"></span>
           </div>
           <span class="local-badge">Läst lokalt</span>
         </div>
@@ -49,7 +49,6 @@
         <section id="panel-review" class="panel" aria-labelledby="step-review" tabindex="-1" hidden>
           <div class="review-summary">
             <p id="review-confirmation" hidden></p>
-            <p id="selection-count" role="status" hidden></p>
           </div>
           <p id="empty-preview" class="empty">Filen har lästs in, men inga pass matchar reglerna för arbete. Det finns inga händelser att importera.</p>
           <div id="agenda-review" hidden>
@@ -97,9 +96,6 @@
 
         <section id="panel-import" class="panel" aria-labelledby="step-import" tabindex="-1" hidden>
           <p class="warning">Varje import skapar nya händelser. Befintliga händelser kontrolleras inte. Samma fil igen kan ge dubbletter.</p>
-          <p id="import-target">Välj händelser och anslut en kalender för att importera.</p>
-          <p id="import-colors">Färger: Kalenderns standardfärg</p>
-          <button id="import" type="button" disabled>Importera till Google Kalender</button>
           <p id="import-status" role="status" aria-live="polite"></p>
           <p id="error" role="alert" class="error" hidden></p>
           <div id="results" hidden>
@@ -118,6 +114,7 @@
         <div id="wizard-actions" class="wizard-actions" hidden>
           <button id="back" type="button" class="text-button" hidden><span aria-hidden="true">←</span> Tillbaka</button>
           <button id="next" type="button" hidden disabled>Nästa <span aria-hidden="true">→</span></button>
+          <button id="import" type="button" hidden disabled>Importera till Google Kalender</button>
         </div>
       </div>
 
